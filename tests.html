@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ベンチプレス伸び計算機 ロジックのテスト</title>
+<style>
+  body { font-family: system-ui, "Yu Gothic UI", Meiryo, sans-serif; margin: 16px; line-height: 1.6; background: #fff; color: #1a1d21; }
+  #summary { font-size: 1.25rem; font-weight: 700; }
+  .pass { color: #2b8a3e; }
+  .fail { color: #c92a2a; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>ロジックのテスト</h1>
+<p id="summary">実行中…</p>
+<ul id="results"></ul>
+
+<script src="js/bg-data.js"></script>
+<script src="js/bg-calc.js"></script>
+<script>
+(function () {
+  'use strict';
+  const BG = window.BG;
+  const D = BG.DATA;
+  const results = [];
+  function test(name, fn) {
+    try { fn(); results.push({ name, ok: true }); }
+    catch (e) { results.push({ name, ok: false, msg: e && e.message ? e.message : String(e) }); }
+  }
+  function eq(a, b, label) {
+    const x = JSON.stringify(a), y = JSON.stringify(b);
+    if (x !== y) throw new Error((label ? label + ': ' : '') + '期待値 ' + y + ' / 実際 ' + x);
+  }
+  function near(a, b, label, tol) {
+    if (!(Math.abs(a - b) <= (tol || 1e-6))) throw new Error((label ? label + ': ' : '') + '期待値 ' + b + ' / 実際 ' + a);
+  }
+  function ok(c, label) { if (!c) throw new Error(label || '条件を満たしていません'); }
+
+  // ---- MAXの計算式 ----
+  test('4つの式は、LeSuer 1997 の表（5・9・10回でMAXの何%か）と一致する', () => {
+    // 表の値。Brzycki の9回は表に「87」とあるが、式から計算すると78になるため78で確かめる
+    const table = { brzycki: [89, 78, 75], epley: [86, 77, 75], mayhew: [84, 78, 76], lombardi: [85, 80, 79] };
+    Object.keys(table).forEach(id => [5, 9, 10].forEach((r, i) => {
+      const pct = 100 / BG.FORMULAS[id](1, r) * 1;
+      near(Math.round(pct), table[id][i], id + ' ' + r + '回', 0);
+    }));
+  });
+  test('1回ならその重さ、10回を超えたら10回として計算', () => {
+    const e1 = BG.estimateAll(100, 1);
+    ok(e1.list.every(f => f.value === 100), '1回');
+    const e15 = BG.estimateAll(60, 15);
+    eq([e15.used, e15.capped], [10, true]);
+    eq(e15.list.map(f => f.value), BG.estimateAll(60, 10).list.map(f => f.value));
+  });
+  test('計算に使うMAXは Brzycki の式：100kg×5回 → 112.51kg', () => {
+    eq(BG.estimate1RM(100, 5), 112.51);
+    eq(BG.estimateAll(100, 5).main, 112.51);
+    eq(BG.estimate1RM(0, 5), null);
+  });
+  test('式の幅：最小と最大は一覧の値と同じ', () => {
+    const e = BG.estimateAll(80, 6);
+    eq(e.min, Math.min(...e.list.map(f => f.value)));
+    eq(e.max, Math.max(...e.list.map(f => f.value)));
+  });
+
+  // ---- 伸びの速さ ----
+  test('体重比の点では、表の値そのまま', () => {
+    eq(BG.ratesFor(0.8, 'male'), { low: 1.8, high: 3.5 });
+    eq(BG.ratesFor(1.2, 'male'), { low: 0.6, high: 1.5 });
+    eq(BG.ratesFor(0.5, 'female'), { low: 1.2, high: 2.5 });
+  });
+  test('強いほど遅く伸びる（男女とも）', () => {
+    ['male', 'female'].forEach(sex => {
+      for (let r = 0.4; r < 2.0; r += 0.02) {
+        const a = BG.ratesFor(r, sex), b = BG.ratesFor(r + 0.02, sex);
+        ok(b.low <= a.low + 1e-9 && b.high <= a.high + 1e-9, sex + ' ' + r.toFixed(2));
+        ok(a.low < a.high, sex + ' 下限 < 上限 ' + r.toFixed(2));
+      }
+    });
+  });
+  test('女性の推定の点は、男性の点を体重比 × 0.69 に置きかえたもの', () => {
+    D.anchors.female.filter(a => a.estimated).forEach(a => {
+      const m = D.anchors.male.find(x => Math.abs(x.ratio * D.sexRatio - a.ratio) < 0.01);
+      ok(m && m.low === a.low && m.high === a.high, a.ratio + '倍');
+    });
+  });
+  test('8週までは同じペース、9週目からは半分', () => {
+    near(BG.gainPct(8, 2), 16);
+    near(BG.gainPct(16, 2), 24);
+  });
+  test('ページの表（8週間の伸び）と計算が一致', () => {
+    const rows = [['male', 0.8, 14, 28], ['male', 1.2, 5, 12], ['male', 1.5, 3, 10], ['male', 1.8, 2, 6], ['female', 0.5, 10, 20], ['female', 0.65, 8, 18], ['female', 0.83, 5, 12]];
+    rows.forEach(([sex, ratio, lo, hi]) => {
+      const r = BG.ratesFor(ratio, sex);
+      eq([Math.round(BG.gainPct(8, r.low)), Math.round(BG.gainPct(8, r.high))], [lo, hi], sex + ' ' + ratio);
+    });
+  });
+  test('Ogasawara 2012 の6〜24週の記録は、8週までのペースに直すと1週あたり3.2〜3.5%', () => {
+    [[6, 20.0], [9, 28.8], [12, 34.7], [15, 39.6], [18, 44.1], [21, 48.2], [24, 51.8]].forEach(([w, p]) => {
+      const rate = p / BG.gainPct(w, 1);
+      ok(rate >= 3.2 && rate <= 3.5, w + '週 ' + rate.toFixed(2));
+    });
+  });
+
+  // ---- 研究のデータ ----
+  test('研究の点：男性14グループのうち10が幅に入り、外れた4つのうち3つは速い側', () => {
+    eq(BG.bandCoverage('male'), { inside: 10, above: 3, below: 1, total: 14 });
+    eq(D.studies.filter(s => BG.studyPosition(s) === 'below').map(s => s.id), ['kikuchi']);
+  });
+  test('研究の点：女性3グループのうち2つが幅に入り、外れた1つは速い側', () => {
+    eq(BG.bandCoverage('female'), { inside: 2, above: 1, below: 0, total: 3 });
+  });
+  test('研究はすべて出典つき', () => {
+    D.studies.forEach(s => ok(D.refs[s.ref] && D.refs[s.ref].doi, s.id));
+  });
+  test('近い研究：同じ性別だけ、同じ論文は重ならず近い順', () => {
+    const m = BG.nearestStudies(1.2, 'male', 3);
+    eq(m.length, 3);
+    ok(m.every(s => s.sex === 'male'));
+    eq(new Set(m.map(s => s.ref)).size, 3);
+    for (let i = 1; i < m.length; i++) ok(Math.abs(m[i].ratio - 1.2) >= Math.abs(m[i - 1].ratio - 1.2), '近い順');
+    const f = BG.nearestStudies(0.55, 'female', 3);
+    eq(f.map(s => s.ref).sort(), ['cholewa2018', 'rossi2024']);
+  });
+
+  // ---- 予測と判定 ----
+  test('予測：男性・60kg・体重75kg（0.8倍）・8週 → 68.6〜76.8kg', () => {
+    const p = BG.predict(60, 75, 8, 'male');
+    near(p.lowMax, 68.64); near(p.highMax, 76.8);
+    eq(p.curve.length, 9);
+  });
+  test('予測：女性は女性の幅を使う', () => {
+    const p = BG.predict(30, 60, 8, 'female');
+    eq(p.rates, { low: 1.2, high: 2.5 });
+  });
+  test('判定：控えめでも届く / 範囲内 / 範囲外', () => {
+    const p = BG.predict(60, 75, 8, 'male');
+    eq(BG.verdict(p, 5), 'likely');
+    eq(BG.verdict(p, 15), 'possible');
+    eq(BG.verdict(p, 20), 'beyond');
+    eq(BG.verdict(p, 0), null);
+  });
+  test('必要な週数：男性・100kg・体重83kg・+10kg', () => {
+    const w = BG.weeksNeeded(100, 83, 10, 'male');
+    ok(w.fastest < w.slowest, JSON.stringify(w));
+    eq(BG.weeksNeeded(150, 80, 100, 'male').slowest, null);
+  });
+
+  // ---- 重さごとの回数 ----
+  test('重さごとの回数：100kg → 80%は80kgで平均8.8回（7〜11回）', () => {
+    const t = BG.repsTableFor(100);
+    eq(t.map(r => r.pct), [95, 90, 85, 80, 75, 70, 65, 60]);
+    const r80 = t.find(r => r.pct === 80);
+    eq([r80.weight, r80.mean, r80.lo, r80.hi], [80, 8.82, 7, 11]);
+    for (let i = 1; i < t.length; i++) ok(t[i].mean > t[i - 1].mean && t[i].weight <= t[i - 1].weight);
+  });
+
+  // ---- 入力 ----
+  test('範囲外の週数・目標・性別は既定値に直す', () => {
+    const n = BG.normalizeInput({ sex: 'x', max: 60, bw: 70, weeks: 30, target: -1 });
+    eq([n.sex, n.weeks, n.target], ['male', 8, null]);
+    eq(BG.normalizeInput({ sex: 'female' }).sex, 'female');
+  });
+  test('体重とMAXが空・範囲外ならエラー', () => {
+    eq(BG.validate(BG.normalizeInput({ max: '', bw: '' })).length, 2);
+    eq(BG.validate(BG.normalizeInput({ max: 60, bw: 70 })).length, 0);
+  });
+
+  const ul = document.getElementById('results');
+  results.forEach(r => {
+    const li = document.createElement('li');
+    li.className = r.ok ? 'pass' : 'fail';
+    li.textContent = (r.ok ? 'PASS ' : 'FAIL ') + r.name + (r.msg ? '：' + r.msg : '');
+    ul.appendChild(li);
+  });
+  const failed = results.filter(r => !r.ok).length;
+  const s = document.getElementById('summary');
+  s.textContent = failed ? 'FAIL：' + results.length + '件中 ' + failed + '件失敗' : 'ALL PASS：' + results.length + '件';
+  s.className = failed ? 'fail' : 'pass';
+})();
+</script>
+</body>
+</html>
