@@ -19,6 +19,7 @@
   const verdictBox = document.getElementById('verdict');
   const studyList = document.getElementById('study-list');
   const studyNote = document.getElementById('study-note');
+  const formulaCard = document.getElementById('formula-card');
   const formulaBox = document.getElementById('formula-box');
   const repsBody = document.querySelector('#reps-table tbody');
   const programLink = document.getElementById('program-link');
@@ -139,21 +140,20 @@
 
   // ---- 描画: 予測 ----
   function renderPrediction(n, p) {
-    summaryMeta.textContent = sexName(n.sex) + '・今のMAX ' + kg(n.max) + 'kg・体重 ' + kg(n.bw) + 'kg（体重の' + p.ratio.toFixed(2) + '倍）・' + n.weeks + '週間';
+    summaryMeta.textContent = sexName(n.sex) + '・MAX ' + kg(n.max) + 'kg・体重 ' + kg(n.bw) + 'kg（' + p.ratio.toFixed(2) + '倍）・' + n.weeks + '週間';
     bigRange.replaceChildren(
       h('span', { class: 'big-label', text: n.weeks + '週間後の予想MAX' }),
       h('span', { class: 'big-num', text: kg0(p.lowMax) + '〜' + kg0(p.highMax) + 'kg' }),
       h('span', { class: 'big-gain', text: '+' + kg0(p.lowGain) + '〜' + kg0(p.highGain) + 'kg（+' + pct1(p.lowPct) + '〜' + pct1(p.highPct) + '%）' })
     );
-    const notes = [
-      h('li', null, sexName(n.sex) + 'で体重の' + p.ratio.toFixed(2) + '倍の人は、研究では1週あたり約' + pct1(p.rates.low) + '〜' + pct1(p.rates.high) + '%伸びています。今のMAXが体重に比べて軽いほど、速く伸びます。', cite('rate'))
+    const line = [
+      '帯は、研究で見られた伸びの幅です。' + sexName(n.sex) + 'で体重の' + p.ratio.toFixed(2) + '倍の人は、1週あたり約' + pct1(p.rates.low) + '〜' + pct1(p.rates.high) + '%伸びていました。', cite('rate')
     ];
     const upper = D.anchors[n.sex][D.anchors[n.sex].length - 2].ratio;
-    if (n.sex === 'female' && p.ratio > D.anchors.female[1].ratio) notes.push(h('li', null, '体重の' + D.anchors.female[1].ratio + '倍を超える女性の研究は見つからなかったため、男性の研究から推定しています。', cite('sex')));
-    else if (n.sex === 'male' && p.ratio > upper) notes.push(h('li', null, '体重の' + upper + '倍を超える男性の研究はほとんどないため、控えめに推定しています。', cite('rate')));
-    if (n.weeks > D.fullRateWeeks) notes.push(h('li', null, (D.fullRateWeeks + 1) + '週目からは半分のペースで計算しています。24週間の研究でも、この計算とよく合っていました。', cite('long')));
-    notes.push(h('li', null, 'MAXを測り慣れていない人は、測るだけで数%上がることがあります。予測の伸びには、その分も含まれます。', cite('practice')));
-    rateLine.replaceChildren(...notes);
+    if (n.sex === 'female' && p.ratio > D.anchors.female[1].ratio) line.push(' 体重の' + D.anchors.female[1].ratio + '倍を超える女性の研究は見つからなかったため、男性の研究から推定しています。', cite('sex'));
+    else if (n.sex === 'male' && p.ratio > upper) line.push(' 体重の' + upper + '倍を超える男性の研究はほとんどないため、控えめに推定しています。', cite('rate'));
+    if (n.weeks > D.fullRateWeeks) line.push(' ' + (D.fullRateWeeks + 1) + '週目からは半分のペースで計算しています。', cite('long'));
+    rateLine.replaceChildren(...line);
     chartBox.replaceChildren(BG.chart.bandChart(p, n.target));
   }
 
@@ -165,47 +165,38 @@
     }
     const v = BG.verdict(p, n.target);
     const need = BG.weeksNeeded(n.max, n.bw, n.target, n.sex);
+    const slow = need.slowest ? '約' + need.slowest + '週' : '1年以上';
     const titles = { likely: '届く見込みが高い目標です', possible: '研究の範囲内の目標です', beyond: n.weeks + '週間では届きにくい目標です' };
-    const lines = [];
+    let text;
     if (v === 'likely') {
-      lines.push('+' + kg(n.target) + 'kgは、研究で見られた控えめなペースでも' + n.weeks + '週間で届く伸びです。');
+      text = '控えめなペースでも、' + n.weeks + '週間で+' + kg(n.target) + 'kgに届きます。';
     } else if (v === 'possible') {
-      lines.push('+' + kg(n.target) + 'kgは、研究で見られた速いペースなら' + n.weeks + '週間で届きます。控えめなペースだと' + (need.slowest ? '約' + need.slowest + '週' : '1年以上') + 'かかります。');
+      text = '速いペースなら' + n.weeks + '週間で届きます。控えめなペースだと' + slow + 'かかります。';
+    } else if (need.fastest) {
+      text = '速いペースでも' + n.weeks + '週間では+' + kg0(p.highGain) + 'kgまでです。+' + kg(n.target) + 'kgには、約' + need.fastest + '週〜' + (need.slowest ? need.slowest + '週' : '1年以上') + 'かかる見込みです。';
     } else {
-      lines.push('研究で見られた速いペースでも、' + n.weeks + '週間の伸びは+' + kg0(p.highGain) + 'kgまでです。');
-      if (need.fastest) {
-        lines.push('+' + kg(n.target) + 'kgには、速いペースで約' + need.fastest + '週、控えめなペースで' + (need.slowest ? '約' + need.slowest + '週' : '1年以上') + 'が目安です。' + (need.slowest == null || need.slowest > D.maxWeeks ? '16週より先は研究が少ないため、あくまで目安です。' : ''));
-      } else {
-        lines.push('1年以上かかる見込みです。大会に出ている人の記録でも、ベンチプレスの伸びは1年で最大10〜13kgほどでした。');
-      }
-      lines.push(n.weeks + '週間なら、+' + kg0(p.lowGain) + '〜' + kg0(p.highGain) + 'kgが現実的な目標です。');
+      text = '1年以上かかる見込みです。大会に出ている人でも、ベンチプレスの伸びは1年で最大10〜13kgほどでした。';
     }
     verdictBox.className = 'verdict verdict-' + v;
-    verdictBox.replaceChildren(
-      h('p', { class: 'verdict-title', text: titles[v] }),
-      ...lines.map(t => h('p', { text: t })),
-      h('p', { class: 'verdict-cite' }, cite('rate', '判定のもとになった研究'), v === 'beyond' ? cite('long', '長い期間の伸び') : null)
-    );
+    verdictBox.replaceChildren(h('p', { class: 'verdict-title', text: titles[v] }), h('p', { text: text }));
     verdictBox.hidden = false;
   }
 
   // ---- 描画: 近い研究 ----
   function renderStudies(n, p) {
     const near = BG.nearestStudies(p.ratio, n.sex, 3);
-    studyNote.textContent = n.sex === 'female'
-      ? '女性のベンチプレスの研究は少なく、使えるものは2本です。'
-      : '体重比が近いグループを、研究ごとに1つずつ選んでいます。';
+    studyNote.textContent = n.sex === 'female' ? '女性のベンチプレスの研究は少なく、使えるものは2本です。' : '';
+    studyNote.hidden = n.sex !== 'female';
     studyList.replaceChildren(...near.map(s => {
       const r = D.refs[s.ref];
       const yours = n.max * BG.gainPct(n.weeks, s.effRate) / 100;
       return h('li', { class: 'study' },
         h('div', { class: 'study-top' },
-          h('span', { class: 'study-ratio', text: '体重の' + (s.approxRatio ? '約' : '') + s.ratio.toFixed(2) + '倍' }),
+          h('span', { class: 'study-ratio', text: '体重の' + (s.approxRatio ? '約' : '') + s.ratio.toFixed(2) + '倍の人' }),
           h('a', { class: 'study-ref', href: 'https://doi.org/' + r.doi, rel: 'noopener', text: r.short })
         ),
-        h('p', { class: 'study-who', text: s.who + (s.group ? '（' + s.group + '）' : '') + '・' + s.how }),
-        h('p', { class: 'study-result', text: s.weeks + '週間で ' + kg(s.pre) + 'kg → +' + kg(s.gain) + 'kg（+' + pct1(s.pct) + '%）' }),
-        h('p', { class: 'study-yours', text: 'この伸び方をあなたの' + n.weeks + '週間に当てはめると、約+' + kg0(yours) + 'kg' })
+        h('p', { class: 'study-result', text: s.weeks + '週間で+' + pct1(s.pct) + '%' },
+          ' ', h('span', { class: 'study-yours', text: '→ あなたなら約+' + kg0(yours) + 'kg' }))
       );
     }));
   }
@@ -213,13 +204,11 @@
   // ---- 描画: MAXの計算式と、重さごとの回数 ----
   function renderFormulas(s) {
     const e = currentEstimate(s);
-    if (!e) {
-      formulaBox.replaceChildren(h('p', { class: 'hint', text: '「重さ×回数から推定」を選ぶと、ここに4つの式で計算したMAXが並びます。' }));
-      return;
-    }
+    formulaCard.hidden = !e;
+    if (!e) return;
     formulaBox.replaceChildren(...[
-      h('p', null, kg(e.weight) + 'kgを' + e.reps + '回挙げたときのMAXは、式によって' + kg(e.min) + '〜' + kg(e.max) + 'kgです。この計算機は Brzycki の式の値を使います。'),
-      e.capped ? h('p', { class: 'hint', text: '10回を超えると、どの式も誤差が大きくなります。10回として計算しています。' }) : null,
+      h('p', null, kg(e.weight) + 'kgを' + e.reps + '回挙げたときのMAXは、式によって' + kg(e.min) + '〜' + kg(e.max) + 'kgです。計算には Brzycki の式を使います。どの式も、10回以下のときに正確です。', cite('formulas')),
+      e.capped ? h('p', { class: 'hint', text: '10回を超えると、どの式も誤差が大きくなるため、10回として計算しています。' }) : null,
       h('div', { class: 'table-wrap' },
         h('table', { class: 'data-table' },
           h('thead', null, h('tr', null, h('th', { scope: 'col', text: '式' }), h('th', { scope: 'col', text: 'MAX' }), h('th', { scope: 'col', text: '特徴' }))),
@@ -237,8 +226,7 @@
     repsBody.replaceChildren(...BG.repsTableFor(n.max).map(r => h('tr', null,
       h('th', { scope: 'row', text: r.pct + '%' }),
       h('td', { class: 'cell-num', text: kg(r.weight) + 'kg' }),
-      h('td', { class: 'cell-num', text: '平均 ' + r.mean.toFixed(1) + 'rep' }),
-      h('td', { class: 'cell-num', text: r.lo + '〜' + r.hi + 'rep' })
+      h('td', { class: 'cell-num', text: r.mean.toFixed(1) + 'rep（' + r.lo + '〜' + r.hi + '）' })
     )));
   }
 
@@ -248,10 +236,7 @@
     p.set('bw', kg(n.bw));
     p.set('sx', n.sex === 'female' ? 'f' : 'm');
     if ([4, 6, 8, 10, 12].indexOf(n.weeks) >= 0) p.set('wk', String(n.weeks));
-    const href = '/bench-program/?' + p.toString();
-    programLink.href = href;
-    const btn = document.getElementById('program-link-btn');
-    if (btn) btn.href = href;
+    programLink.href = '/bench-program/?' + p.toString();
   }
 
   // ---- 計算 ----

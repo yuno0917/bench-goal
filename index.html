@@ -47,16 +47,15 @@
 
 <header class="site-header">
   <div class="wrap">
-    <p class="eyebrow">無料・登録不要</p>
     <h1>ベンチプレス伸び計算機</h1>
-    <p class="lead">「何週間で何kg上がる？」を、研究のデータから予測します。重さと回数からMAXを出す4つの計算式の比較と、何kgなら何回できるかの表もつけています。どの数字も、もとにした研究を確かめられます。</p>
+    <p class="lead">今のMAXと体重から、何週間で何kg伸びるかを研究のデータで予測します。</p>
   </div>
 </header>
 
 <main class="wrap">
 
   <section class="card" id="form-section" aria-labelledby="form-title">
-    <h2 id="form-title"><span class="step-num">1</span>今のあなたの記録</h2>
+    <h2 id="form-title">今のあなたの記録</h2>
     <form id="calc-form" novalidate>
       <p class="error" id="form-error" role="alert" hidden></p>
 
@@ -88,7 +87,7 @@
             <span class="times">×</span>
             <span class="num"><input type="number" name="liftR" inputmode="numeric" min="1" max="20" step="1" placeholder="6" aria-label="回数"><span class="unit">rep</span></span>
             <p class="hint" id="est-out" aria-live="polite"></p>
-            <p class="hint">限界まで挙げた回数を入れます。10回以下のほうが正確です。</p>
+            <p class="hint">限界まで挙げた回数を入れます（10回以下が正確です）。</p>
           </div>
         </div>
 
@@ -123,56 +122,51 @@
 
   <section id="result" aria-labelledby="result-title" hidden>
     <div class="card">
-      <h2 id="result-title"><span class="step-num">2</span>伸びの予測</h2>
+      <h2 id="result-title">伸びの予測</h2>
       <p class="summary-meta" id="summary-meta"></p>
       <p class="big-range" id="big-range"></p>
       <div class="chart-box" id="chart-box"></div>
-      <p class="hint">色の帯が、研究で見られた伸びの幅です。上の線が速いペース、下の線が控えめなペースです。</p>
-      <ul class="rate-notes" id="rate-line"></ul>
+      <p class="hint" id="rate-line"></p>
       <div class="verdict" id="verdict" hidden></div>
-    </div>
-
-    <div class="card">
-      <h2><span class="step-num">3</span>あなたに近い強さの人の研究</h2>
-      <p class="hint" id="study-note"></p>
-      <ul class="study-list" id="study-list"></ul>
-      <p class="more-link"><a href="evidence.html#rate">ほかの研究と、計算の方法を見る</a></p>
-    </div>
-
-    <div class="card">
-      <h2><span class="step-num">4</span>MAXの計算式と、重さごとの回数</h2>
-      <h3 class="section-title">4つの計算式で出したMAX</h3>
-      <div id="formula-box"></div>
-      <p class="hint">どの式も、限界まで挙げた回数が10回以下のときに正確です。人によっては10%くらいずれることがあります。<a class="cite-chip" href="evidence.html#formulas">根拠</a></p>
-
-      <h3 class="section-title">今のMAXで、何kgなら何回できるか</h3>
-      <div class="table-wrap">
-        <table class="data-table" id="reps-table">
-          <caption>ベンチプレスで限界まで挙げられる回数の目安</caption>
-          <thead><tr><th scope="col">MAXの</th><th scope="col">重さ</th><th scope="col">平均</th><th scope="col">多くの人の範囲</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <p class="hint">269の研究をまとめた結果です。「多くの人の範囲」は、平均から標準偏差1つ分の幅です。性別や筋トレの経験による差は小さい結果でした。<a class="cite-chip" href="evidence.html#reps">根拠</a></p>
-    </div>
-
-    <div class="card">
-      <h2><span class="step-num">5</span>この期間のメニューを作る</h2>
-      <p>この期間のベンチプレスのプログラムは、<a id="program-link" href="/bench-program/">ベンチプレス プログラムメーカー</a>で作れます。MAX、体重、期間を引き継ぎます。</p>
       <div class="actions">
-        <a class="btn-link" id="program-link-btn" href="/bench-program/">プログラムを作る</a>
-        <button type="button" class="secondary" id="share-btn">この結果のリンクをコピー</button>
+        <a class="btn-link" id="program-link" href="/bench-program/">この期間のプログラムを作る</a>
+        <button type="button" class="secondary" id="share-btn">リンクをコピー</button>
       </div>
       <div class="share-box" id="share-box" hidden>
         <input type="text" id="share-url" readonly aria-label="共有リンク">
         <p class="share-status" id="share-status" role="status"></p>
       </div>
     </div>
+
+    <div class="card">
+      <h2>近い強さの人の研究</h2>
+      <p class="hint" id="study-note" hidden></p>
+      <ul class="study-list" id="study-list"></ul>
+      <p class="more-link"><a href="evidence.html#rate">ほかの研究と、計算の方法を見る</a></p>
+    </div>
+
+    <div class="card" id="formula-card" hidden>
+      <h2>4つの計算式で出したMAX</h2>
+      <div id="formula-box"></div>
+    </div>
+
+    <div class="card">
+      <h2>今のMAXで、何kgなら何回できるか</h2>
+      <div class="table-wrap">
+        <table class="data-table" id="reps-table">
+          <thead><tr><th scope="col">MAXの</th><th scope="col">重さ</th><th scope="col">限界までの回数</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint">269の研究をまとめた平均です。かっこの中は、多くの人が入る範囲です。<a class="cite-chip" href="evidence.html#reps">根拠</a></p>
+    </div>
   </section>
 
   <section class="card article" aria-labelledby="about-title">
     <h2 id="about-title">この計算機の考え方</h2>
     <p>同じメニューでも、始めたばかりの人は大きく伸び、強い人ほど伸びにくくなります。研究を並べると、ベンチプレスでも「MAXが体重の何倍か」で伸びの速さがおおむねそろいます。そこで、この計算機は性別と体重比から伸びの幅を出します。</p>
+    <details class="more">
+    <summary>計算に使う伸びの表を見る</summary>
     <div class="table-wrap">
       <table class="data-table">
         <caption>計算に使う1週あたりの伸び（始めのMAXに対する割合）</caption>
@@ -188,19 +182,17 @@
         </tbody>
       </table>
     </div>
+    </details>
     <p>くわしい研究の内容と、計算の方法は<a href="evidence.html">根拠の研究</a>で紹介しています。</p>
 
     <h2>よくある質問</h2>
-    <h3>本当にこの通りに伸びますか？</h3>
-    <p>予測は、研究に参加した人たちの平均的な伸びをもとにしています。同じ研究の中でも、伸び方には大きな個人差がありました。睡眠、食事、フォーム、ケガなどでも変わります。目安として使ってください。</p>
-    <h3>MAXは、胸で止めて挙げた重さですか？</h3>
-    <p>胸で止めずに挙げた重さを入れてください。113人を調べた研究では、胸で止めずに挙げたMAXは、胸で止めたときより約8%重くなりました。大会のように胸で止めて測る場合は、その分低くなります。<a class="cite-chip" href="evidence.html#pause">根拠</a></p>
-    <h3>どの計算式が正しいですか？</h3>
-    <p>どの式も平均的な関係を表したもので、人によって数%〜10%ほどずれます。ベンチプレスを10回以下挙げた男性220人の研究で最も正確だった Brzycki の式を使い、ほかの式の値も並べています。<a class="cite-chip" href="evidence.html#formulas">根拠</a></p>
-    <h3>女性はなぜ別に計算するのですか？</h3>
-    <p>同じメニューで比べた研究をまとめると、上半身の筋力は、女性のほうが割合で大きく伸びていました。また、体重に対するMAXの大きさも男女で違います。ただ、女性のベンチプレスの研究は少ないため、予測の幅は控えめです。<a class="cite-chip" href="evidence.html#sex">根拠</a></p>
-    <h3>16週より長い期間は計算できませんか？</h3>
-    <p>研究の多くは6〜12週間です。16週より先は根拠が少ないため、計算していません。大会に出ている人の記録でも、ベンチプレスの伸びは1年で最大10〜13kgほどでした。</p>
+    <div class="faq">
+      <details><summary>本当にこの通りに伸びますか？</summary><p>予測は、研究に参加した人たちの平均的な伸びをもとにしています。同じ研究の中でも、伸び方には大きな個人差がありました。睡眠、食事、フォーム、ケガなどでも変わります。また、MAXを測り慣れていない人は、測るだけで数%上がることがあり、予測の伸びにはその分も含まれます。目安として使ってください。<a class="cite-chip" href="evidence.html#practice">根拠</a></p></details>
+      <details><summary>MAXは、胸で止めて挙げた重さですか？</summary><p>胸で止めずに挙げた重さを入れてください。113人を調べた研究では、胸で止めずに挙げたMAXは、胸で止めたときより約8%重くなりました。大会のように胸で止めて測る場合は、その分低くなります。<a class="cite-chip" href="evidence.html#pause">根拠</a></p></details>
+      <details><summary>どの計算式が正しいですか？</summary><p>どの式も平均的な関係を表したもので、人によって数%〜10%ほどずれます。ベンチプレスを10回以下挙げた男性220人の研究で最も正確だった Brzycki の式を使い、ほかの式の値も並べています。<a class="cite-chip" href="evidence.html#formulas">根拠</a></p></details>
+      <details><summary>女性はなぜ別に計算するのですか？</summary><p>同じメニューで比べた研究をまとめると、上半身の筋力は、女性のほうが割合で大きく伸びていました。また、体重に対するMAXの大きさも男女で違います。ただ、女性のベンチプレスの研究は少ないため、予測の幅は控えめです。<a class="cite-chip" href="evidence.html#sex">根拠</a></p></details>
+      <details><summary>16週より長い期間は計算できませんか？</summary><p>研究の多くは6〜12週間です。16週より先は根拠が少ないため、計算していません。大会に出ている人の記録でも、ベンチプレスの伸びは1年で最大10〜13kgほどでした。</p></details>
+    </div>
 
     <h2 id="disclaimer">免責事項</h2>
     <div class="disclaimer">
