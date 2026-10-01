@@ -58,16 +58,17 @@
     <h2 id="form-title">今のあなたの記録</h2>
     <form id="calc-form" novalidate>
       <p class="error" id="form-error" role="alert" hidden></p>
-
-      <fieldset>
-        <legend>性別</legend>
-        <div class="seg seg-compact">
-          <label><input type="radio" name="sex" value="male" checked><span>男性</span></label>
-          <label><input type="radio" name="sex" value="female"><span>女性</span></label>
-        </div>
-      </fieldset>
+      <input type="hidden" name="mode" value="max">
 
       <div class="field-grid">
+        <fieldset class="field">
+          <legend>性別</legend>
+          <div class="seg seg-compact">
+            <label><input type="radio" name="sex" value="male" checked><span>男性</span></label>
+            <label><input type="radio" name="sex" value="female"><span>女性</span></label>
+          </div>
+        </fieldset>
+
         <label class="field">
           <span class="field-name">体重</span>
           <span class="num"><input type="number" name="bw" inputmode="decimal" min="30" max="200" step="0.1" placeholder="65" required><span class="unit">kg</span></span>
@@ -75,12 +76,8 @@
 
         <div class="field">
           <span class="field-name" id="max-label">ベンチプレスのMAX</span>
-          <div class="seg seg-compact seg-mini" role="radiogroup" aria-labelledby="max-label">
-            <label><input type="radio" name="mode" value="max" checked><span>MAXを知っている</span></label>
-            <label><input type="radio" name="mode" value="reps"><span>重さ×回数から推定</span></label>
-          </div>
           <div id="max-field">
-            <span class="num"><input type="number" name="max" inputmode="decimal" min="10" max="300" step="0.5" placeholder="60" aria-label="ベンチプレスのMAX（kg）"><span class="unit">kg</span></span>
+            <span class="num"><input type="number" name="max" inputmode="decimal" min="10" max="300" step="0.5" placeholder="60" aria-labelledby="max-label"><span class="unit">kg</span></span>
           </div>
           <div id="reps-field" hidden>
             <span class="num"><input type="number" name="liftW" inputmode="decimal" min="10" max="300" step="0.5" placeholder="50" aria-label="挙げた重さ（kg）"><span class="unit">kg</span></span>
@@ -89,6 +86,7 @@
             <p class="hint" id="est-out" aria-live="polite"></p>
             <p class="hint">限界まで挙げた回数を入れます（10回以下が正確です）。</p>
           </div>
+          <button type="button" class="link-btn" id="mode-btn">MAXがわからないときは、重さと回数から計算する</button>
         </div>
 
         <label class="field">
